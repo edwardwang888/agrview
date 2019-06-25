@@ -90,6 +90,18 @@ def lambda_handler(event, context):
         gps_file = client.list_objects(Bucket=os.getenv('MY_BUCKET1'),Prefix=key+'gps')['Contents'][0]['Key']
         print('gps file: {}'.format(gps_file))
 
+        # Populate FlightLookup table
+        data = key.split('/')
+        print('Now populating FlightLookup')
+        with connection.cursor() as cursor:
+                sql = "INSERT INTO `FlightLookup` (`" + os.getenv('FLIGHT_KEY1') + \
+                      "`,`" + os.getenv('FLIGHT_KEY2') + \
+                      "`,`FlightDate`,`FlightCode`) VALUES(%s, %s, %s, %s)"
+                cursor.execute(sql, ('s3://' + os.getenv('MY_BUCKET1') + '/' + key,
+                                     's3://' + os.getenv('MY_BUCKET2') + '/' + key,
+                                     data[0], data[1]))
+                print('Finished populating FlightLookup')
+
         populate_oo(connection, oo_file)
         populate_gps(connection, gps_file)
         connection.commit()
