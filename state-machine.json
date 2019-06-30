@@ -1,0 +1,45 @@
+{
+  "StartAt": "Wait For Upload",
+  "States": {
+    "Wait For Upload": {
+      "Type": "Wait",
+      "Seconds": 1,
+      "Next": "Populate Database"
+    },
+    "Populate Database": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-west-1:123456789012:function:populate-database",
+        "Payload": {
+          "Input.$": "$"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 6,
+          "BackoffRate": 1.5
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Notify Error"
+        }
+      ],
+      "Next": "Success"
+    },
+    "Success": {
+      "Type": "Succeed"
+    },
+    "Notify Error": {
+      "Type": "Pass",
+      "Next": "Fail"
+    },
+    "Fail": {
+      "Type": "Fail"
+    }
+  }
+}
