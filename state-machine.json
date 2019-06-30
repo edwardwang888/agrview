@@ -1,10 +1,41 @@
 {
-  "StartAt": "Wait For Upload",
+  "StartAt": "Count Files",
   "States": {
-    "Wait For Upload": {
-      "Type": "Wait",
-      "Seconds": 1,
-      "Next": "Populate Database"
+    "Count Files": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-west-1:123456789012:function:count-files",
+        "Payload": {
+          "Input.$": "$"
+        }
+      },
+      "ResultPath": "$.taskresult",
+      "Next": "Compare Counts"
+    },
+    "Compare Counts": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.taskresult.Payload.Equal",
+          "BooleanEquals": true,
+          "Next": "Populate Database"
+        },
+        {
+          "And": [
+            {
+              "Variable": "$.taskresult.Payload.Equal",
+              "BooleanEquals": false
+            },
+            {
+              "Variable": "$.taskresult.Payload.Retries",
+              "NumericLessThan": 6
+            }
+          ],
+          "Next": "Wait For Upload"
+        }
+      ],
+      "Default": "Retries Exceeded"
     },
     "Populate Database": {
       "Type": "Task",
@@ -15,30 +46,14 @@
           "Input.$": "$"
         }
       },
-      "Retry": [
-        {
-          "ErrorEquals": ["States.ALL"],
-          "IntervalSeconds": 1,
-          "MaxAttempts": 6,
-          "BackoffRate": 1.5
-        }
-      ],
-      "Catch": [
-        {
-          "ErrorEquals": ["States.ALL"],
-          "Next": "Notify Error"
-        }
-      ],
-      "Next": "Success"
+      "End": true
     },
-    "Success": {
-      "Type": "Succeed"
+    "Wait For Upload": {
+      "Type": "Wait",
+      "Seconds": 1,
+      "Next": "Count Files"
     },
-    "Notify Error": {
-      "Type": "Pass",
-      "Next": "Fail"
-    },
-    "Fail": {
+    "Retries Exceeded": {
       "Type": "Fail"
     }
   }
