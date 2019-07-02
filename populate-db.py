@@ -84,9 +84,22 @@ def lambda_handler(event, context):
     if key[-5:-1].isalpha():
         connection = connectDB()
         print('Connection successful!')
-        oo_file = key + os.getenv('OO_FILEPATH')
+        missing_files = []
+        try:
+            oo_file = client.list_objects(Bucket = os.getenv('MY_BUCKET1'),
+                                                    Prefix = key + os.getenv('OO_FILEPATH'))['Contents'][0]['Key']
+        except KeyError:
+            missing_files.append(key + os.getenv('OO_FILEPATH'))
+
+        try:
+            gps_file = client.list_objects(Bucket=os.getenv('MY_BUCKET1'),Prefix=key+'gps')['Contents'][0]['Key']
+        except KeyError:
+            missing_files.append('key' + gps)
+
+        if len(missing_files) != 0:
+            raise FileNotFoundError('The following keys were missing: {}'.format(missing_files))
+
         print('oo file: {}'.format(oo_file))
-        gps_file = client.list_objects(Bucket=os.getenv('MY_BUCKET1'),Prefix=key+'gps')['Contents'][0]['Key']
         print('gps file: {}'.format(gps_file))
 
         # Populate FlightLookup table
