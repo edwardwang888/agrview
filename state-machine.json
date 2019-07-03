@@ -1,7 +1,7 @@
 {
-  "StartAt": "Count Files",
+  "StartAt": "Traverse Files",
   "States": {
-    "Count Files": {
+    "Traverse Files": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
@@ -11,20 +11,20 @@
         }
       },
       "ResultPath": "$.taskresult",
-      "Next": "Compare Counts"
+      "Next": "Check Upload Complete"
     },
-    "Compare Counts": {
+    "Check Upload Complete": {
       "Type": "Choice",
       "Choices": [
         {
-          "Variable": "$.taskresult.Payload.Equal",
+          "Variable": "$.taskresult.Payload.Done",
           "BooleanEquals": true,
-          "Next": "Populate Database"
+          "Next": "Check Files Exist"
         },
         {
           "And": [
             {
-              "Variable": "$.taskresult.Payload.Equal",
+              "Variable": "$.taskresult.Payload.Done",
               "BooleanEquals": false
             },
             {
@@ -37,21 +37,67 @@
       ],
       "Default": "Retries Exceeded"
     },
+    "Check Files Exist": {
+      "Type": "Parallel",
+      "Next": "Populate Database",
+      "ResultPath": "$.Filenames",
+      "Branches": [
+        {
+          "StartAt": "GPS File Exists",
+          "States": {
+            "GPS File Exists": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-west-1:123456789012:function:check-files-exist",
+              "Parameters": {
+                "Type": "GPS",
+                "Key.$": "$.Key"
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "O File Exists",
+          "States": {
+            "O File Exists":{
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-west-1:123456789012:function:check-files-exist",
+              "Parameters": {
+                "Type": "OFile",
+                "Key.$": "$.Key"
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "I File Exists",
+          "States": {
+            "I File Exists": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-west-1:123456789012:function:check-files-exist",
+              "Parameters": {
+                "Type": "IFile",
+                "Key.$": "$.Key"
+              },
+              "End": true
+            }
+          }
+        }
+      ]
+    },
     "Populate Database": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::lambda:invoke",
+      "Resource": "arn:aws:lambda:us-west-1:123456789012:function:populate-database",
       "Parameters": {
-        "FunctionName": "arn:aws:lambda:us-west-1:123456789012:function:populate-database",
-        "Payload": {
-          "Input.$": "$"
-        }
+        "Input.$": "$"
       },
       "End": true
     },
     "Wait For Upload": {
       "Type": "Wait",
       "Seconds": 1,
-      "Next": "Count Files"
+      "Next": "Traverse Files"
     },
     "Retries Exceeded": {
       "Type": "Fail"
