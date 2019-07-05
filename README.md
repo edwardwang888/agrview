@@ -10,4 +10,4 @@ Because of confidentiality, many variable names have been obfuscated in the sour
 
 The data pipeline was developed using AWS Lambda and RDS. The reason for solely using managed services was because the company had a small team and wanted to take advantage of the convenience provided by managed services.
 
-![Pipeline](https://user-images.githubusercontent.com/40527812/60703301-4d528180-9eb6-11e9-894c-0996a11ceda6.png)
+![Pipeline](https://user-images.githubusercontent.com/40527812/60703919-d74f1a00-9eb7-11e9-9441-a4deca8768ec.png)
