@@ -19,12 +19,20 @@ s3 = boto3.resource('s3',
                     aws_secret_access_key=os.getenv('MY_SECRET_ACCESS_KEY'))
 
 def parse_args():
+    """
+    Parses command line arguments if called from the command line. This function is not
+    invoked when run as a Lambda function.
+    """
     parser = argparse.ArgumentParser(description='Populate database with OO and GPS data.')
     parser.add_argument('--oo', help='input file containing OO data')
     parser.add_argument('--gps', help='input file containing GPS data')
     return parser.parse_args()
 
 def connectDB():
+    """
+    Returns a connection to the MySQL database specified by the environmental variables
+    configured in the Lambda function.
+    """
     return pymysql.connect(host=os.getenv('MYSQL_INSTANCE'),
                              user=os.getenv('MYSQL_USER'),
                              password=os.getenv('MYSQL_PASSWORD'),
@@ -35,9 +43,13 @@ def connectDB():
 def populate_oo(connection, oo_file, numseconds):
     """
     Parses OO data and checks if the number of readings is consistent with the number of seconds of flight.
+    The seconds of flight is determined previously and passed in as a parameter.
     """
+    # Download OO file from S3 bucket
     print('oo_file: {}'.format(oo_file))
     s3.meta.client.download_file(os.getenv('MY_BUCKET1'), oo_file, '/tmp/oo_file.txt')
+
+    # Run OO parser
     subprocess.run(['python3',os.getenv('OO_PARSER'),'/tmp/oo_file.txt','/tmp'])
     print('Finished parsing OO data')
     with open(os.getenv('OO_DIRECTORY') + 'timelist.txt','r') as csvfile:
@@ -45,11 +57,13 @@ def populate_oo(connection, oo_file, numseconds):
         filelist = next(csvreader)
         csvfile.close()
 
+    # Check number of OO readings
     if math.fabs(numseconds - len(filelist)) > 1000:
         print('OO readings: {}'.format(len(filelist)))
         raise Exception('Number of OO readings inconsistent with duration of flight')
 
-    # Eventually may want to remove filelist and look for files directly
+    # Parse OO data and populate into database; eventually may want to remove
+    # filelist and look for files directly.
     for filename in filelist:
         if filename != "":
             with open(os.getenv('OO_DIRECTORY') + filename + '.txt') as f:
@@ -67,10 +81,20 @@ def populate_oo(connection, oo_file, numseconds):
     print('Finished populating OO')
 
 def populate_gps(connection, gps_file):
+    """
+    Populates GPS data and gets the number of seconds of flight from the first and last GPS readings.
+    Returns the number of seconds for use in further data validation.
+    """
+    # Download GPS file from S3 bucket
     dest = '/tmp/' + os.path.basename(gps_file)
     s3.meta.client.download_file(os.getenv('MY_BUCKET1'), gps_file, dest)
+
+    # Run GPS parser
     print(subprocess.run(['python3','gps_to_csv.py',dest],stdout=subprocess.PIPE,stderr=subprocess.PIPE))
     print('Finished running GPS parsing')
+
+    # Parse GPS readings and populate them into the database; additionally, count
+    # the number of GPS readings and keep track of the first and last timestamps.
     with open(dest + '.csv','r') as csvfile:
         csvreader = csv.reader(csvfile,delimiter=',')
         next(csvreader)
@@ -102,21 +126,34 @@ def populate_gps(connection, gps_file):
         print(numseconds)
         print('Number of GPS readings:')
         print(count)
+
+        # Check number of GPS readings
         if math.fabs(numseconds - count) > 1000:
             raise Exception('Number of GPS readings inconsistent with flight duration')
         return numseconds
 
 def lambda_handler(event, context):
+    """
+    Main Lambda handler function that populates the raw data into the database and also
+    validates some file counts that are passed into the function from a previous step
+    of the state machine.
+    """
+    # Log the received event
     print("Received event: " + json.dumps(event, indent=2))
 
     # Get the object from the event
     key = event['Input']['Key']
     print('Key: {}'.format(key))
 
-    # Check that key contains flight code
+    # Check that key contains flight code; otherwise do nothing
     if key[-5:-1].isalpha():
+        # Connect to database
         connection = connectDB()
         print('Connection successful!')
+
+        # Check for missing files and throw exception if any are missing.
+        # NOTE: this should never throw an exception since file checking is done
+        # in previous steps of the state machine.
         missing_files = []
         try:
             oo_file = client.list_objects(Bucket = os.getenv('MY_BUCKET1'),
@@ -132,12 +169,15 @@ def lambda_handler(event, context):
         if len(missing_files) != 0:
             raise FileNotFoundError('The following keys were missing: {}'.format(missing_files))
 
+        # Print file names for logging
         print('oo file: {}'.format(oo_file))
         print('gps file: {}'.format(gps_file))
+
+        # Populate GPS and OO data and store the number of seconds of flight returned by populate_gps()
         numseconds = populate_gps(connection, gps_file)
         populate_oo(connection, oo_file, numseconds)
 
-        # Check HCount and ICount
+        # Check HCount and ICount to verify they are consistent with flight duration
         hcount = event['Input']['taskresult']['Payload']['HCount']
         icount = event['Input']['taskresult']['Payload']['ICount']
         print('HCount: {}'.format(hcount))
