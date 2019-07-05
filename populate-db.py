@@ -114,22 +114,22 @@ def populate_gps(connection, gps_file):
                 sql = "INSERT INTO `GPS` (`SysTime`,`GPSTime`,`Latitude`,`Longtitude`,`Altitude`,`GroundElevation`) VALUES(%s, %s, %s, %s, %s, %s)"
                 cursor.execute(sql, (row[0], row[1], latitude, longtitude, row[6], row[7]))
 
-        print('Min date is:')
-        print(mindate)
-        print('Max date is:')
-        print(maxdate)
-        print('Total elapsed time is:')
+        # Compute number of seconds of flight
         difference = maxdate - mindate
-        print(difference)
         numseconds = difference.total_seconds()
-        print('Seconds elapsed is:')
-        print(numseconds)
-        print('Number of GPS readings:')
-        print(count)
+
+        # Print information for logging
+        print('Min date is: {}'.format(mindate))
+        print('Max date is: {}'.format(maxdate))
+        print('Total elapsed time is: {}'.format(difference))
+        print('Seconds elapsed is:'.format(numseconds))
+        print('Number of GPS readings:'.format(count))
 
         # Check number of GPS readings
         if math.fabs(numseconds - count) > 1000:
             raise Exception('Number of GPS readings inconsistent with flight duration')
+
+        print('Finished populating GPS')
         return numseconds
 
 def lambda_handler(event, context):
