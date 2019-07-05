@@ -1,0 +1,10 @@
+/* Some fields have been obfuscated for confidentiality purposes. */
+CREATE USER 'user1' IDENTIFIED BY 'password1';
+CREATE USER 'user2' IDENTIFIED BY 'password2';
+CREATE DATABASE database;
+GRANT ALL ON database.* to 'user1';
+GRANT ALL ON database.* to 'user2';
+USE database;
+CREATE TABLE FlightLookup (FLIGHT_KEY1 VARCHAR(64) NOT NULL, FLIGHT_KEY2 VARCHAR(64) NOT NULL, FlightDate DATE NOT NULL, FlightCode VARCHAR(4) NOT NULL);
+CREATE TABLE GPS (SysTime DATETIME NOT NULL, GPSTime DATETIME NOT NULL, Latitude FLOAT NOT NULL, Longtitude FLOAT NOT NULL, Altitude FLOAT NOT NULL, GroundElevation FLOAT NOT NULL);
+CREATE TABLE OO_TABLE (SysTime DATETIME NOT NULL, OO_KEY2 INT NOT NULL, OO_KEY3 VARCHAR(30000) NOT NULL);
