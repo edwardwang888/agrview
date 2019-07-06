@@ -52,5 +52,5 @@ def lambda_handler(event, context):
         try:
             retries = event['Input']['taskresult']['Payload']['Retries']
         except KeyError:
-            retries = 1
+            retries = 0
         return {"Done": False, "Retries": retries + 1}
