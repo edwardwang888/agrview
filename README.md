@@ -61,6 +61,4 @@ After implementing the event-driven approach, I noticed that a bottleneck occurr
 
 ## Links ##
 
-[Slides](bit.ly/agrview-slides)
-
-[Presentation](https://youtu.be/jUZb01HzHuA)
+[Slides](https://docs.google.com/presentation/d/1zNSOtTyvE-8gh-3Yhg4-n2rpAc-R5fWsG0XtOOuwj-A/edit?usp=sharing) | [Presentation](https://youtu.be/jUZb01HzHuA)
