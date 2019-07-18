@@ -58,3 +58,7 @@ This was the step function that orchestrated the workflow of the event-driven ap
 ## Bottlenecks ##
 
 After implementing the event-driven approach, I noticed that a bottleneck occurred when traversing through the files to determine the latest timestamp. I also noticed that this same process was significantly slower when run in the Lambda function (via the AWS SDK) as opposed to on the AWS CLI. My hypothesis is that this was afftected by the programming language used to access the SDK since a loop was required when traversing the files. One possibility is to write the same code in another language like Java to see if the performance improves.
+
+## Links ##
+[Slides](bit.ly/agrview-slides)
+[Presentation](https://youtu.be/jUZb01HzHuA)
